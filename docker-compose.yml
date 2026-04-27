@@ -1,0 +1,9 @@
+services:
+  openhumming:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./workspace:/app/workspace
+    environment:
+      OPENHUMMING_PROVIDER: local
