@@ -31,7 +31,7 @@ class AgentRuntime:
         self.trace_recorder = trace_recorder
         self.skill_manager = skill_manager
         self.planner = Planner()
-        self.executor = Executor(tool_registry)
+        self.executor = Executor(tool_registry, trace_recorder)
         self.observer = Observer()
         self.reflection = Reflection()
 
@@ -65,7 +65,7 @@ class AgentRuntime:
         observation = self.observer.observe(execution)
         reflection = self.reflection.reflect(message, plan, observation)
 
-        system_prompt = build_system_prompt(context, relevant_skills)
+        system_prompt = build_system_prompt(context, relevant_skills, plan, observation)
         messages = [
             ChatMessage(role=item.role, content=item.content)
             for item in context.conversation_history
@@ -77,7 +77,10 @@ class AgentRuntime:
             session_id=resolved_session_id,
             user_message=message,
             assistant_message=response,
-            metadata={"intent": plan.intent},
+            metadata={
+                "intent": plan.intent,
+                "tool_actions": [result.tool_name for result in execution.tool_results],
+            },
         )
         actions.append("record_conversation")
 

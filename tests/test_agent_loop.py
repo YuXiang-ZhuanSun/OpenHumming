@@ -31,3 +31,12 @@ def test_agent_runtime_records_turn_and_trace(settings, workspace_paths) -> None
 
     trace_lines = workspace_paths.trace_file().read_text(encoding="utf-8").splitlines()
     assert len(trace_lines) == 2
+
+
+def test_agent_runtime_executes_file_read_tool(settings, workspace_paths) -> None:
+    runtime = build_runtime(settings, workspace_paths)
+    result = runtime.respond("session-tools", "请读取 `agent.md`")
+
+    assert "tool:file_read" in result.actions
+    assert "Tool results:" in result.response
+    assert "Agent Profile" in result.response
