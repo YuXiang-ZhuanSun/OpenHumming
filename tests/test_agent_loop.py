@@ -52,3 +52,20 @@ def test_agent_runtime_injects_relevant_skill_context(settings, workspace_paths)
     assert "load_skills" in result.actions
     assert "Relevant skill context:" in result.response
     assert "Create Agent Project Plan" in result.response
+
+
+def test_agent_runtime_creates_skill_from_completed_workflow(
+    settings,
+    workspace_paths,
+) -> None:
+    runtime = build_runtime(settings, workspace_paths)
+    result = runtime.respond(
+        "session-create-skill",
+        "请读取 `agent.md`，然后把这个流程沉淀成 skill: Agent Profile Reader",
+    )
+
+    created_skill = workspace_paths.skills_dir / "agent_profile_reader.md"
+    assert "tool:file_read" in result.actions
+    assert "create_skill" in result.actions
+    assert created_skill.exists()
+    assert "Created skill: Agent Profile Reader" in result.response
