@@ -21,3 +21,14 @@ def test_skill_manager_lists_and_creates_skills(workspace_paths) -> None:
     assert created.path.exists()
     assert valid is True
     assert errors == []
+
+
+def test_skill_manager_retrieves_relevant_skill_by_content(workspace_paths) -> None:
+    manager = SkillManager(workspace_paths.skills_dir)
+    results = manager.find_relevant_skills(
+        "I need a mature project plan for a Python agent runtime",
+        limit=2,
+    )
+
+    assert results
+    assert results[0].slug == "example_skill"

@@ -43,9 +43,7 @@ class AgentRuntime:
         )
         skills = self.skill_manager.list_skills()
         plan = self.planner.plan(message, skills)
-        relevant_skills = [
-            skill for skill in skills if skill.name in plan.relevant_skills
-        ]
+        relevant_skills = self.skill_manager.find_relevant_skills(message, limit=3)
 
         actions = ["load_profiles", "load_history"]
         if relevant_skills:

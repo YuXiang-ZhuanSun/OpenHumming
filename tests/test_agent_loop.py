@@ -40,3 +40,15 @@ def test_agent_runtime_executes_file_read_tool(settings, workspace_paths) -> Non
     assert "tool:file_read" in result.actions
     assert "Tool results:" in result.response
     assert "Agent Profile" in result.response
+
+
+def test_agent_runtime_injects_relevant_skill_context(settings, workspace_paths) -> None:
+    runtime = build_runtime(settings, workspace_paths)
+    result = runtime.respond(
+        "session-skills",
+        "I need a mature project plan for a Python agent runtime",
+    )
+
+    assert "load_skills" in result.actions
+    assert "Relevant skill context:" in result.response
+    assert "Create Agent Project Plan" in result.response
