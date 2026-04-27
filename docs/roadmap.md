@@ -1,6 +1,8 @@
 # Roadmap
 
-## v0.1
+## Completed Milestones
+
+### v0.1
 
 - Local workspace initialization
 - FastAPI chat endpoint
@@ -8,33 +10,46 @@
 - Profile loading and conversation persistence
 - Local provider fallback
 
-## v0.2
+### v0.2
 
-- Tool registry and richer tool execution
-- Trace viewer and improved event modeling
+- Tool registry and real tool execution inside the runtime loop
+- Trace recording for tool calls and turn lifecycle events
 
-## v0.3
+### v0.3
 
-- Skill retrieval and context injection
-- Skill search
+- Skill retrieval from workspace markdown
+- Skill context injection into the runtime prompt
 
-## v0.4
+### v0.4
 
 - Skill candidate detection
-- Draft generation and validation
+- Automatic skill draft generation and persistence
 
-## v0.5
+### v0.5
 
-- APScheduler runner
-- Task-triggered prompts
+- APScheduler-backed background task runner
+- Task-triggered runtime execution
+- Task run logging under `workspace/tasks/runs/`
 
-## v0.6
+### v0.6
 
-- Daily summaries
-- Candidate memory updates
+- Daily review summaries
+- Stable memory extraction for `user.md`
+- Capability refreshes for `agent.md`
+- Manual and scheduled review entrypoints
 
-## v1.0
+## v1.0 Finish Line
 
-- Polished README and demos
-- CI and release automation
+- Polished README and documentation set
+- CI validation on push and pull request
+- Release tags and changelog discipline
+- More demos and examples
 - Optional skill marketplace primitives
+
+## Longer-Term Ideas
+
+- Safer approval-aware shell execution
+- Vector or hybrid skill retrieval
+- Multi-agent collaboration patterns
+- Browser and Git integrations
+- Skill export and sharing flows

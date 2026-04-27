@@ -100,7 +100,6 @@ def _append_unique_bullets(markdown: str, heading: str, bullets: list[str]) -> s
         return markdown.rstrip() + f"\n\n{heading}\n\n{bullet_block}\n"
 
     before, after = markdown.split(heading, maxsplit=1)
-    current_section = after
     next_heading_index = after.find("\n## ")
     if next_heading_index >= 0:
         section_body = after[:next_heading_index]

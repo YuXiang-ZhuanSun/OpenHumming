@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from openhumming import __version__
 from openhumming.agent.runtime import AgentRuntime
 from openhumming.config import Settings, configure_logging, get_settings
 from openhumming.llm import build_provider
@@ -74,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title=resolved_settings.app_name,
         summary=resolved_settings.app_tagline,
-        version="0.1.0",
+        version=__version__,
         lifespan=lifespan,
     )
     app.state.settings = resolved_settings
