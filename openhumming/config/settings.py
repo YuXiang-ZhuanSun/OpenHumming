@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     conversation_history_limit: int = 20
     log_level: str = "INFO"
     trace_enabled: bool = True
+    scheduler_enabled: bool = True
+    scheduler_timezone: str = "Asia/Shanghai"
+    scheduler_sync_interval_seconds: int = 30
 
     model_config = SettingsConfigDict(
         env_prefix="OPENHUMMING_",

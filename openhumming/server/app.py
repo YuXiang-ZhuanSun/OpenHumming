@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from openhumming.agent.runtime import AgentRuntime
@@ -5,6 +7,7 @@ from openhumming.config import Settings, configure_logging, get_settings
 from openhumming.llm import build_provider
 from openhumming.memory.store import MemoryStore
 from openhumming.scheduler.manager import TaskManager
+from openhumming.scheduler.runner import TaskRunner
 from openhumming.server.routes_chat import router as chat_router
 from openhumming.server.routes_skills import router as skills_router
 from openhumming.server.routes_tasks import router as tasks_router
@@ -35,17 +38,38 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         skill_manager=skill_manager,
         tool_registry=tool_registry,
     )
+    trace_recorder = runtime.trace_recorder
+    task_runner = TaskRunner(
+        task_manager=task_manager,
+        runtime=runtime,
+        paths=paths,
+        trace_recorder=trace_recorder,
+        timezone_name=resolved_settings.scheduler_timezone,
+        sync_interval_seconds=resolved_settings.scheduler_sync_interval_seconds,
+    )
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        app.state.task_runner = task_runner
+        if resolved_settings.scheduler_enabled:
+            task_runner.start()
+        try:
+            yield
+        finally:
+            task_runner.shutdown()
 
     app = FastAPI(
         title=resolved_settings.app_name,
         summary=resolved_settings.app_tagline,
         version="0.1.0",
+        lifespan=lifespan,
     )
     app.state.settings = resolved_settings
     app.state.paths = paths
     app.state.memory_store = memory_store
     app.state.skill_manager = skill_manager
     app.state.task_manager = task_manager
+    app.state.task_runner = task_runner
     app.state.runtime = runtime
 
     @app.get("/")

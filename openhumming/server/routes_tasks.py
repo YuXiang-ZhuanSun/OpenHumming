@@ -45,6 +45,9 @@ def create_task(payload: TaskCreateRequest, request: Request) -> TaskResponse:
         prompt=payload.prompt,
         title=payload.title,
     )
+    task_runner = getattr(request.app.state, "task_runner", None)
+    if task_runner is not None:
+        task_runner.sync_jobs()
     return TaskResponse(
         id=task.id,
         title=task.title,

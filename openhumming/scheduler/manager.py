@@ -29,6 +29,12 @@ class TaskManager:
         raw_items = json.loads(self.tasks_file.read_text(encoding="utf-8") or "[]")
         return [TaskRecord(**item) for item in raw_items]
 
+    def get_task(self, task_id: str) -> TaskRecord | None:
+        for task in self.list_tasks():
+            if task.id == task_id:
+                return task
+        return None
+
     def create_from_text(
         self,
         natural_language: str,
