@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import typer
@@ -6,6 +7,7 @@ import uvicorn
 from openhumming.agent.runtime import AgentRuntime
 from openhumming.config import Settings, get_settings
 from openhumming.llm import build_provider
+from openhumming.memory.reviewer import DailyReviewService
 from openhumming.memory.store import MemoryStore
 from openhumming.scheduler.manager import TaskManager
 from openhumming.server.app import create_app
@@ -52,6 +54,21 @@ def _build_runtime(settings: Settings) -> AgentRuntime:
         trace_recorder=TraceRecorder(paths),
         skill_manager=skill_manager,
         tool_registry=tool_registry,
+    )
+
+
+def _build_daily_review_service(settings: Settings) -> DailyReviewService:
+    paths = WorkspacePaths.from_root(settings.workspace_root)
+    initialize_workspace(paths)
+    memory_store = MemoryStore(paths)
+    skill_manager = SkillManager(paths.skills_dir)
+    task_manager = TaskManager(paths.tasks_file)
+    return DailyReviewService(
+        paths=paths,
+        memory_store=memory_store,
+        skill_manager=skill_manager,
+        task_manager=task_manager,
+        trace_recorder=TraceRecorder(paths),
     )
 
 
@@ -110,3 +127,26 @@ def chat_command(
         result = runtime.respond(active_session, user_message)
         active_session = result.session_id
         typer.echo(f"OpenHumming: {result.response}")
+
+
+@app.command("daily-review")
+def daily_review_command(
+    workspace: Path | None = typer.Option(None, help="Workspace directory."),
+    review_date: str | None = typer.Option(
+        None,
+        help="Optional review date in YYYY-MM-DD format.",
+    ),
+) -> None:
+    settings = _resolve_settings(workspace=workspace)
+    service = _build_daily_review_service(settings)
+    target_date = date.fromisoformat(review_date) if review_date else None
+    result = service.run(target_date)
+    typer.echo(str(result.summary_path))
+    if result.user_updates:
+        typer.echo("User updates:")
+        for item in result.user_updates:
+            typer.echo(f"- {item}")
+    if result.agent_updates:
+        typer.echo("Agent updates:")
+        for item in result.agent_updates:
+            typer.echo(f"- {item}")

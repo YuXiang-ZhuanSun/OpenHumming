@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = True
     scheduler_timezone: str = "Asia/Shanghai"
     scheduler_sync_interval_seconds: int = 30
+    daily_review_enabled: bool = True
+    daily_review_hour: int = 23
+    daily_review_minute: int = 0
 
     model_config = SettingsConfigDict(
         env_prefix="OPENHUMMING_",

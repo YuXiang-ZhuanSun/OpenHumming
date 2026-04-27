@@ -19,6 +19,9 @@ I am a local-first autonomous agent runtime.
 - Load and create markdown skills
 - Persist conversations and traces
 - Store scheduled task definitions
+- Execute scheduled tasks
+- Create skills from repeated workflows
+- Review daily conversations and update memory
 
 ## Behavior Principles
 

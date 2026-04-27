@@ -5,10 +5,12 @@ from fastapi import FastAPI
 from openhumming.agent.runtime import AgentRuntime
 from openhumming.config import Settings, configure_logging, get_settings
 from openhumming.llm import build_provider
+from openhumming.memory.reviewer import DailyReviewService
 from openhumming.memory.store import MemoryStore
 from openhumming.scheduler.manager import TaskManager
 from openhumming.scheduler.runner import TaskRunner
 from openhumming.server.routes_chat import router as chat_router
+from openhumming.server.routes_reviews import router as reviews_router
 from openhumming.server.routes_skills import router as skills_router
 from openhumming.server.routes_tasks import router as tasks_router
 from openhumming.server.websocket import router as websocket_router
@@ -39,6 +41,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tool_registry=tool_registry,
     )
     trace_recorder = runtime.trace_recorder
+    daily_review_service = DailyReviewService(
+        paths=paths,
+        memory_store=memory_store,
+        skill_manager=skill_manager,
+        task_manager=task_manager,
+        trace_recorder=trace_recorder,
+    )
     task_runner = TaskRunner(
         task_manager=task_manager,
         runtime=runtime,
@@ -46,6 +55,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         trace_recorder=trace_recorder,
         timezone_name=resolved_settings.scheduler_timezone,
         sync_interval_seconds=resolved_settings.scheduler_sync_interval_seconds,
+        daily_review_service=daily_review_service,
+        daily_review_enabled=resolved_settings.daily_review_enabled,
+        daily_review_hour=resolved_settings.daily_review_hour,
+        daily_review_minute=resolved_settings.daily_review_minute,
     )
 
     @asynccontextmanager
@@ -70,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.skill_manager = skill_manager
     app.state.task_manager = task_manager
     app.state.task_runner = task_runner
+    app.state.daily_review_service = daily_review_service
     app.state.runtime = runtime
 
     @app.get("/")
@@ -84,6 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(chat_router)
+    app.include_router(reviews_router)
     app.include_router(skills_router)
     app.include_router(tasks_router)
     app.include_router(websocket_router)

@@ -1,3 +1,4 @@
+from datetime import date
 from dataclasses import dataclass
 from typing import Any
 
@@ -47,3 +48,10 @@ class MemoryStore:
             assistant_message=assistant_message,
             metadata=metadata,
         )
+
+    def load_messages_for_date(
+        self,
+        target_date: date,
+        session_id: str | None = None,
+    ) -> list[StoredMessage]:
+        return self.conversations.messages_for_date(target_date, session_id=session_id)

@@ -8,7 +8,7 @@ Request:
 
 ```json
 {
-  "message": "帮我总结今天做了什么",
+  "message": "Help me summarize what we finished today",
   "session_id": "optional-session-id"
 }
 ```
@@ -42,3 +42,8 @@ List persisted scheduled tasks.
 ## `POST /tasks`
 
 Create a task from natural-language schedule text.
+
+## `POST /reviews/daily`
+
+Run a daily review immediately. This writes a summary markdown file and applies
+stable memory updates to `agent.md` and `user.md`.

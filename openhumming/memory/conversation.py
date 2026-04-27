@@ -59,24 +59,43 @@ class ConversationStore:
             return []
         records: list[StoredMessage] = []
         for file_path in self._conversation_files():
-            for line in file_path.read_text(encoding="utf-8").splitlines():
-                if not line.strip():
-                    continue
-                raw = json.loads(line)
-                if session_id and raw.get("session_id") != session_id:
-                    continue
-                records.append(
-                    StoredMessage(
-                        role=raw["role"],
-                        content=raw["content"],
-                        timestamp=raw["timestamp"],
-                        session_id=raw["session_id"],
-                        metadata=raw.get("metadata", {}),
-                    )
-                )
+            records.extend(self._read_messages_from_file(file_path, session_id=session_id))
         return records[-limit:]
+
+    def messages_for_date(
+        self,
+        target_date,
+        session_id: str | None = None,
+    ) -> list[StoredMessage]:
+        file_path = self.paths.conversation_file(target_date)
+        if not file_path.exists():
+            return []
+        return self._read_messages_from_file(file_path, session_id=session_id)
 
     def _conversation_files(self) -> list[Path]:
         if not self.paths.conversations_dir.exists():
             return []
         return sorted(self.paths.conversations_dir.glob("*.jsonl"))
+
+    def _read_messages_from_file(
+        self,
+        file_path: Path,
+        session_id: str | None = None,
+    ) -> list[StoredMessage]:
+        records: list[StoredMessage] = []
+        for line in file_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            raw = json.loads(line)
+            if session_id and raw.get("session_id") != session_id:
+                continue
+            records.append(
+                StoredMessage(
+                    role=raw["role"],
+                    content=raw["content"],
+                    timestamp=raw["timestamp"],
+                    session_id=raw["session_id"],
+                    metadata=raw.get("metadata", {}),
+                )
+            )
+        return records

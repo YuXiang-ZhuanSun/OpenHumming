@@ -2,9 +2,9 @@
 
 > Small agent. Full loop.
 
-OpenHumming is a local-first Python agent runtime with readable markdown memory,
-continuous conversation, skill loading, scheduled task scaffolding, and a
-traceable agent loop.
+OpenHumming is a local-first Python agent runtime with readable markdown
+memory, continuous conversation, real tool execution, reusable skills,
+scheduled tasks, and daily review.
 
 ## Why it exists
 
@@ -20,14 +20,15 @@ smaller but more complete loop:
 
 ## Current status
 
-This repository ships an MVP foundation:
+This repository now covers the roadmap from `v0.1` through `v0.6`:
 
 - `openhumming init` creates a local workspace.
 - `openhumming serve` starts a FastAPI server on `127.0.0.1:8765`.
-- `POST /chat` loads profiles, recent history, skills, and saves the turn.
+- `POST /chat` loads profiles, history, skills, runs tools, and saves the turn.
 - `openhumming chat` provides a local CLI loop.
-- Basic file tools, skill management, task storage, and trace recording are
-  scaffolded for the next milestones.
+- Reusable workflows can be auto-saved as markdown skills.
+- Scheduled tasks run in the background and write run logs.
+- `openhumming daily-review` writes daily summaries and updates memory.
 
 By default the runtime uses a deterministic local provider so the project works
 without an API key. You can switch to OpenAI or Anthropic by configuring
@@ -48,30 +49,31 @@ In another terminal:
 ```bash
 curl -X POST http://127.0.0.1:8765/chat \
   -H "Content-Type: application/json" \
-  -d "{\"message\": \"帮我总结一下 OpenHumming 的目标\"}"
+  -d "{\"message\": \"Help me summarize the goals of OpenHumming\"}"
 ```
 
 Or use the CLI:
 
 ```bash
 openhumming chat
+openhumming daily-review
 ```
 
 ## Repo layout
 
 ```txt
 openhumming/
-├── agent/        # runtime loop, planner, reflection
-├── cli/          # Typer commands
-├── config/       # settings and logging
-├── llm/          # provider abstraction
-├── memory/       # profiles, conversation store
-├── scheduler/    # task parsing and storage
-├── server/       # FastAPI app and routes
-├── skills/       # skill loading and creation
-├── tools/        # tool protocol and built-ins
-├── trace/        # event recording
-└── workspace/    # path helpers and initialization
+|-- agent/        # runtime loop, planner, execution, reflection
+|-- cli/          # Typer commands
+|-- config/       # settings and logging
+|-- llm/          # provider abstraction
+|-- memory/       # profiles, conversation store, daily review
+|-- scheduler/    # task parsing, scheduling, run logging
+|-- server/       # FastAPI app and routes
+|-- skills/       # skill loading, retrieval, and creation
+|-- tools/        # tool protocol and built-ins
+|-- trace/        # event recording
+`-- workspace/    # path helpers and initialization
 ```
 
 ## Philosophy

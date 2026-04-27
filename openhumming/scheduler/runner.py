@@ -12,6 +12,7 @@ from openhumming.workspace.paths import WorkspacePaths
 
 if TYPE_CHECKING:
     from openhumming.agent.runtime import AgentRuntime
+    from openhumming.memory.reviewer import DailyReviewService
 
 
 @dataclass(slots=True)
@@ -35,6 +36,10 @@ class TaskRunner:
         trace_recorder: TraceRecorder,
         timezone_name: str = "Asia/Shanghai",
         sync_interval_seconds: int = 30,
+        daily_review_service: "DailyReviewService | None" = None,
+        daily_review_enabled: bool = False,
+        daily_review_hour: int = 23,
+        daily_review_minute: int = 0,
     ) -> None:
         self.task_manager = task_manager
         self.runtime = runtime
@@ -42,6 +47,10 @@ class TaskRunner:
         self.trace_recorder = trace_recorder
         self.timezone_name = timezone_name
         self.sync_interval_seconds = sync_interval_seconds
+        self.daily_review_service = daily_review_service
+        self.daily_review_enabled = daily_review_enabled
+        self.daily_review_hour = daily_review_hour
+        self.daily_review_minute = daily_review_minute
         self.scheduler: BackgroundScheduler | None = None
 
     def start(self) -> None:
@@ -58,6 +67,15 @@ class TaskRunner:
             id="openhumming.sync_jobs",
             replace_existing=True,
         )
+        if self.daily_review_service is not None and self.daily_review_enabled:
+            self.scheduler.add_job(
+                self.daily_review_service.run,
+                trigger="cron",
+                hour=self.daily_review_hour,
+                minute=self.daily_review_minute,
+                id="openhumming.daily_review",
+                replace_existing=True,
+            )
 
     def shutdown(self) -> None:
         if self.scheduler is None:

@@ -1,13 +1,69 @@
 from datetime import date
 
-from openhumming.memory.store import MemoryContext
+from openhumming.memory.conversation import StoredMessage
 
 
-def summarize_context(context: MemoryContext, target_date: date | None = None) -> str:
-    resolved_date = target_date or date.today()
-    return (
-        f"# Summary for {resolved_date.isoformat()}\n\n"
-        f"- Agent profile loaded: {bool(context.agent_profile)}\n"
-        f"- User profile loaded: {bool(context.user_profile)}\n"
-        f"- Conversation messages considered: {len(context.conversation_history)}\n"
+def build_daily_summary(
+    *,
+    review_date: date,
+    messages: list[StoredMessage],
+    user_updates: list[str],
+    agent_updates: list[str],
+    skill_count: int,
+    task_count: int,
+) -> str:
+    session_count = len({message.session_id for message in messages})
+    user_messages = [message for message in messages if message.role == "user"]
+    assistant_messages = [message for message in messages if message.role == "assistant"]
+    recent_topics = _recent_topics(user_messages)
+
+    summary_lines = [
+        f"# Daily Review for {review_date.isoformat()}",
+        "",
+        "## Activity",
+        "",
+        f"- Total messages: {len(messages)}",
+        f"- User messages: {len(user_messages)}",
+        f"- Assistant messages: {len(assistant_messages)}",
+        f"- Sessions touched: {session_count}",
+        f"- Skills available: {skill_count}",
+        f"- Scheduled tasks: {task_count}",
+        "",
+        "## Recent Topics",
+        "",
+    ]
+
+    if recent_topics:
+        summary_lines.extend(f"- {topic}" for topic in recent_topics)
+    else:
+        summary_lines.append("- No user topics were recorded today.")
+
+    summary_lines.extend(
+        [
+            "",
+            "## Memory Updates",
+            "",
+            f"- User profile updates: {len(user_updates)}",
+            f"- Agent profile updates: {len(agent_updates)}",
+        ]
     )
+
+    if user_updates:
+        summary_lines.extend(["", "### User Profile Additions", ""])
+        summary_lines.extend(f"- {item}" for item in user_updates)
+
+    if agent_updates:
+        summary_lines.extend(["", "### Agent Profile Additions", ""])
+        summary_lines.extend(f"- {item}" for item in agent_updates)
+
+    return "\n".join(summary_lines).rstrip() + "\n"
+
+
+def _recent_topics(user_messages: list[StoredMessage]) -> list[str]:
+    topics: list[str] = []
+    for message in user_messages[-5:]:
+        cleaned = " ".join(message.content.split())
+        if len(cleaned) > 90:
+            cleaned = cleaned[:87].rstrip() + "..."
+        topics.append(cleaned)
+    return topics
