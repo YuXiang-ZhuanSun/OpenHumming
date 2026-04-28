@@ -5,6 +5,8 @@
 [![License](https://img.shields.io/github/license/YuXiang-ZhuanSun/OpenHumming)](https://github.com/YuXiang-ZhuanSun/OpenHumming/blob/main/LICENSE)
 [![Tag](https://img.shields.io/github/v/tag/YuXiang-ZhuanSun/OpenHumming)](https://github.com/YuXiang-ZhuanSun/OpenHumming/tags)
 
+English | [简体中文](README.zh-CN.md)
+
 ![OpenHumming hero](docs/assets/openhumming-hero.svg)
 
 > Small agent. Full loop.
