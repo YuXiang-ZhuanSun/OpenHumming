@@ -1,0 +1,93 @@
+[
+  {
+    "id": "read_agent_profile",
+    "type": "chat",
+    "message": "Please read `agent.md` and summarize the agent identity.",
+    "session_id": "demo-read-agent",
+    "expect_actions": ["tool:file_read"]
+  },
+  {
+    "id": "list_skills_directory",
+    "type": "chat",
+    "message": "Please list the `skills` directory.",
+    "session_id": "demo-list-skills",
+    "expect_actions": ["tool:list_dir"]
+  },
+  {
+    "id": "write_demo_file",
+    "type": "chat",
+    "message": "Write `files/demo_note.md` with content: Hello from the real demo suite.",
+    "session_id": "demo-write-file",
+    "expect_actions": ["tool:file_write"],
+    "expect_file": {
+      "path": "files/demo_note.md",
+      "contains": "Hello from the real demo suite."
+    }
+  },
+  {
+    "id": "read_demo_file",
+    "type": "chat",
+    "message": "Please read `files/demo_note.md`.",
+    "session_id": "demo-read-file",
+    "expect_actions": ["tool:file_read"]
+  },
+  {
+    "id": "create_daily_task",
+    "type": "chat",
+    "message": "Please create a recurring task: every day at 09:15 review the workspace skills directory.",
+    "session_id": "demo-task",
+    "expect_actions": ["tool:task_create"],
+    "expect_tasks_count_at_least": 1
+  },
+  {
+    "id": "remember_user_preference",
+    "type": "chat",
+    "message": "Remember that I prefer terse engineering updates.",
+    "session_id": "demo-user-pref",
+    "expect_memory_updates": {"user": true},
+    "expect_user_profile_contains": ["Prefers terse engineering updates"]
+  },
+  {
+    "id": "remember_current_project",
+    "type": "chat",
+    "message": "I'm working on a local-first autonomous agent runtime.",
+    "session_id": "demo-project",
+    "expect_memory_updates": {"user": true},
+    "expect_user_profile_contains": ["Local-first autonomous agent runtime"]
+  },
+  {
+    "id": "update_agent_working_style",
+    "type": "chat",
+    "message": "Please give me concise implementation-ready updates from now on.",
+    "session_id": "demo-style",
+    "expect_memory_updates": {"agent": true},
+    "expect_agent_profile_contains": ["Match the user's preferred collaboration style: concise implementation-ready updates"]
+  },
+  {
+    "id": "create_skill_draft",
+    "type": "chat",
+    "message": "Please read `agent.md`, list the `skills` directory, then turn this workflow into skill: Workspace Orientation",
+    "session_id": "demo-skill-draft",
+    "expect_actions": ["tool:file_read", "tool:list_dir", "create_skill_draft"],
+    "expect_skill_draft": {
+      "path": "skills/drafts/workspace_orientation.md",
+      "contains": "source: \"workflow_capture\""
+    }
+  },
+  {
+    "id": "refresh_skill_draft_reuse",
+    "type": "chat",
+    "message": "Please read `agent.md`, list the `skills` directory, then turn this workflow into skill: Workspace Orientation",
+    "session_id": "demo-skill-reuse",
+    "expect_actions": ["tool:file_read", "tool:list_dir", "update_skill_draft"],
+    "expect_skill_draft": {
+      "path": "skills/drafts/workspace_orientation.md",
+      "contains": "times_reused: 1"
+    }
+  },
+  {
+    "id": "run_daily_review",
+    "type": "daily_review",
+    "expect_summary_created": true
+  }
+]

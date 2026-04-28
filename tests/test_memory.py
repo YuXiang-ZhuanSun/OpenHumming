@@ -26,18 +26,51 @@ def test_memory_store_loads_profiles_and_turns(workspace_paths) -> None:
     assert updated_context.conversation_history[1].content == "world"
 
 
-def test_daily_review_writes_summary_and_updates_memory(workspace_paths) -> None:
+def test_daily_review_writes_summary_updates_memory_and_promotes_drafts(
+    workspace_paths,
+) -> None:
     store = MemoryStore(workspace_paths)
     store.save_turn(
         "session-review",
-        "请记住我偏好 Python 工具链",
-        "我会记住这个偏好。",
+        "Remember that I prefer Python tooling",
+        "I will remember that preference.",
         metadata={"intent": "chat"},
+    )
+    skill_manager = SkillManager(workspace_paths.skills_dir)
+    promoted_candidate = skill_manager.create_skill_draft(
+        name="Daily Agent Profile Reader",
+        description="Reusable workflow for inspecting agent profile and listing nearby files.",
+        when_to_use="Use this when the user wants to inspect the agent profile workflow.",
+        inputs=["target path", "workspace context"],
+        procedure=["Read agent.md.", "List the skills directory.", "Summarize the result."],
+        output="A reusable workspace inspection workflow.",
+        metadata={
+            "source": "workflow_capture",
+            "confidence": 0.92,
+            "created_from_sessions": ["session-review"],
+            "times_reused": 0,
+            "capture_reason": "The user explicitly asked to retain the finished workflow as a skill.",
+        },
+    )
+    pending_candidate = skill_manager.create_skill_draft(
+        name="Tentative Directory Notes",
+        description="Low-confidence draft that should remain pending.",
+        when_to_use="Use this when the workflow still needs more validation.",
+        inputs=["target path"],
+        procedure=["List the directory.", "Write a quick note."],
+        output="A tentative draft workflow.",
+        metadata={
+            "source": "workflow_capture",
+            "confidence": 0.55,
+            "created_from_sessions": ["session-other"],
+            "times_reused": 0,
+            "capture_reason": "The workflow succeeded, has stable inputs, and looks reusable.",
+        },
     )
     service = DailyReviewService(
         paths=workspace_paths,
         memory_store=store,
-        skill_manager=SkillManager(workspace_paths.skills_dir),
+        skill_manager=skill_manager,
         task_manager=TaskManager(workspace_paths.tasks_file),
         trace_recorder=TraceRecorder(workspace_paths),
     )
@@ -47,7 +80,21 @@ def test_daily_review_writes_summary_and_updates_memory(workspace_paths) -> None
     assert result.summary_path.exists()
     summary = result.summary_path.read_text(encoding="utf-8")
     assert "Daily Review for" in summary
+    assert "## Skill Draft Review" in summary
+    assert "Skill draft learning events" in summary
+    assert "Daily Agent Profile Reader" in result.promoted_skills
+    assert any(item.slug == "daily_agent_profile_reader" for item in result.reviewed_skill_drafts)
+    assert any(item.decision == "pending" for item in result.reviewed_skill_drafts)
+    assert result.open_questions
+
     user_profile = workspace_paths.user_profile.read_text(encoding="utf-8")
-    assert "偏好 Python 工具链" in user_profile
+    assert "Prefers Python tooling" in user_profile
     agent_profile = workspace_paths.agent_profile.read_text(encoding="utf-8")
-    assert "Review daily conversations and update memory" in agent_profile
+    assert "Review learned skill drafts during daily consolidation" in agent_profile
+    assert "Promote mature skill drafts into published skills" in agent_profile
+
+    promoted_path = workspace_paths.skills_dir / promoted_candidate.path.name
+    pending_path = workspace_paths.skill_drafts_dir / pending_candidate.path.name
+    assert promoted_path.exists()
+    assert not promoted_candidate.path.exists()
+    assert pending_path.exists()

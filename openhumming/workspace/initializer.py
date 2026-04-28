@@ -51,6 +51,13 @@ DEFAULT_USER_PROFILE = """# User Profile
 DEFAULT_SKILLS_README = """# Workspace Skills
 
 Store reusable workflow skills here as markdown files.
+把可复用的工作流技能以 Markdown 文件形式放在这里。
+"""
+
+DEFAULT_SKILL_DRAFTS_README = """# Skill Drafts
+
+Auto-learned workflow drafts land here before they are promoted to published skills.
+自动学习得到的工作流草稿会先落在这里，等通过复盘审核后再晋升为正式技能。
 """
 
 DEFAULT_EXAMPLE_SKILL = """# Skill: Create Agent Project Plan
@@ -102,6 +109,7 @@ def initialize_workspace(paths: WorkspacePaths, overwrite: bool = False) -> list
         paths.agent_profile: DEFAULT_AGENT_PROFILE,
         paths.user_profile: DEFAULT_USER_PROFILE,
         paths.skills_dir / "README.md": DEFAULT_SKILLS_README,
+        paths.skill_drafts_dir / "README.md": DEFAULT_SKILL_DRAFTS_README,
         paths.skills_dir / "example_skill.md": DEFAULT_EXAMPLE_SKILL,
         paths.tasks_file: "[]\n",
     }

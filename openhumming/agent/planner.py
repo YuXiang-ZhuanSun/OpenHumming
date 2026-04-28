@@ -11,7 +11,7 @@ READ_HINTS = (
     "\u67e5\u770b",
     "\u6253\u5f00",
 )
-LIST_HINTS = ("list", "ls", "\u5217\u51fa", "\u76ee\u5f55", "\u6587\u4ef6\u5939")
+LIST_HINTS = ("list", "ls", "\u5217\u51fa")
 WRITE_HINTS = (
     "write",
     "save",
@@ -30,16 +30,22 @@ FILE_PATTERN = re.compile(
     r"`([^`]+)`|([A-Za-z0-9_./\\\\-]+\.[A-Za-z0-9_]+)|"
     r"(workspace[./\\\\A-Za-z0-9_-]+)"
 )
+DIRECTORY_PATTERN = re.compile(
+    r"`([^`]+)`\s+(?:directory|folder)|"
+    r"(?:directory|folder)\s+`([^`]+)`|"
+    r"(?:list|show|inspect)\s+(?:the\s+)?([A-Za-z0-9_./\\\\-]+)\s+(?:directory|folder)",
+    re.IGNORECASE,
+)
 CONTENT_PATTERN = re.compile(
-    r"(?:content|contents|内容)\s*[:：]\s*(.+)$",
+    r"(?:content|contents|\u5185\u5bb9)\s*[:\uff1a]?\s*(.+)$",
     re.IGNORECASE,
 )
 SCHEDULE_PATTERN = re.compile(
-    r"((?:\u6bcf\u5929|\u6bcf\u5468[一二三四五六日天]?|every day at).+)",
+    r"((?:\u6bcf\u5929|\u6bcf\u5468[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u65e5\u5929]?|every day at).+)",
     re.IGNORECASE,
 )
 SKILL_NAME_PATTERN = re.compile(
-    r"(?:skill|技能)\s*[:：]?\s*`?([A-Za-z0-9_\-\u4e00-\u9fff ]+)`?$",
+    r"(?:\bskill\b|\u6280\u80fd)\s*[:\uff1a]\s*`?([A-Za-z0-9_\-\u4e00-\u9fff ]+)`?$",
     re.IGNORECASE,
 )
 
@@ -68,7 +74,7 @@ class Planner:
             notes.append("Detected a scheduling request.")
 
         if self._contains_any(lowered, LIST_HINTS):
-            directory = self._extract_path(message) or "."
+            directory = self._extract_directory_path(message) or self._extract_path(message) or "."
             tool_calls.append(
                 ToolCallPlan(
                     tool_name="list_dir",
@@ -133,6 +139,14 @@ class Planner:
                     return group.replace("\\", "/")
         return None
 
+    def _extract_directory_path(self, message: str) -> str | None:
+        match = DIRECTORY_PATTERN.search(message)
+        if match:
+            for group in match.groups():
+                if group:
+                    return group.replace("\\", "/")
+        return None
+
     def _extract_content(self, message: str) -> str | None:
         match = CONTENT_PATTERN.search(message)
         if match:
@@ -143,7 +157,7 @@ class Planner:
         match = SCHEDULE_PATTERN.search(message)
         if not match:
             return None
-        return match.group(1).strip("。.!? ")
+        return match.group(1).strip(" \u3002\uff01?!")
 
     def _extract_skill_name(self, message: str) -> str | None:
         match = SKILL_NAME_PATTERN.search(message.strip())

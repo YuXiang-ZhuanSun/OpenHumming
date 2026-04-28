@@ -1,5 +1,6 @@
 from datetime import date
 
+from openhumming.memory.review_models import ReviewedSkillDraft
 from openhumming.memory.conversation import StoredMessage
 
 
@@ -9,6 +10,12 @@ def build_daily_summary(
     messages: list[StoredMessage],
     user_updates: list[str],
     agent_updates: list[str],
+    reviewed_skill_drafts: list[ReviewedSkillDraft],
+    promoted_skills: list[str],
+    open_questions: list[str],
+    turn_memory_update_count: int,
+    drafts_created_count: int,
+    task_run_count: int,
     skill_count: int,
     task_count: int,
 ) -> str:
@@ -28,6 +35,9 @@ def build_daily_summary(
         f"- Sessions touched: {session_count}",
         f"- Skills available: {skill_count}",
         f"- Scheduled tasks: {task_count}",
+        f"- Task runs recorded today: {task_run_count}",
+        f"- Turn-level memory writes observed: {turn_memory_update_count}",
+        f"- Skill draft learning events: {drafts_created_count}",
         "",
         "## Recent Topics",
         "",
@@ -55,6 +65,35 @@ def build_daily_summary(
     if agent_updates:
         summary_lines.extend(["", "### Agent Profile Additions", ""])
         summary_lines.extend(f"- {item}" for item in agent_updates)
+
+    summary_lines.extend(
+        [
+            "",
+            "## Skill Draft Review",
+            "",
+            f"- Drafts reviewed: {len(reviewed_skill_drafts)}",
+            f"- Drafts promoted: {len(promoted_skills)}",
+            f"- Drafts still pending: {len([item for item in reviewed_skill_drafts if item.decision != 'promoted'])}",
+        ]
+    )
+
+    if promoted_skills:
+        summary_lines.extend(["", "### Promoted Skills", ""])
+        summary_lines.extend(f"- {item}" for item in promoted_skills)
+
+    pending_drafts = [item for item in reviewed_skill_drafts if item.decision != "promoted"]
+    if pending_drafts:
+        summary_lines.extend(["", "### Drafts Still Pending", ""])
+        summary_lines.extend(
+            f"- {item.name}: {item.reason} (confidence {item.confidence:.2f})"
+            for item in pending_drafts
+        )
+
+    summary_lines.extend(["", "## Open Questions", ""])
+    if open_questions:
+        summary_lines.extend([""] + [f"- {item}" for item in open_questions])
+    else:
+        summary_lines.extend(["", "- No open review questions today."])
 
     return "\n".join(summary_lines).rstrip() + "\n"
 

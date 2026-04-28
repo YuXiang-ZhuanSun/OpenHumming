@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openhumming"
-version = "0.6.0"
+version = "1.0.0"
 description = "A local-first Python agent runtime with markdown memory and evolving skills."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["agent", "python", "llm", "skills", "scheduler", "local-first"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
@@ -60,6 +60,8 @@ packages = ["openhumming"]
 [tool.hatch.build]
 include = [
   "openhumming/**/*.md",
+  "openhumming/server/static/**/*",
+  "docs/assets/**/*",
   "README.md",
   "LICENSE",
 ]

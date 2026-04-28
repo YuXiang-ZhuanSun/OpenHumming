@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenHumming Local Console</title>
+    <link rel="stylesheet" href="/ui/static/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">OpenHumming / 开源蜂鸣</p>
+          <h1>Local agent loop, visible evolution.<br />本地 Agent 闭环，可见的持续进化。</h1>
+          <p class="hero-text">
+            Chat with the runtime, inspect memory and skills, run daily review, and
+            watch the workspace change in place.
+            <span>和本地 runtime 对话、查看记忆与技能、执行 daily review，并实时看见工作区如何变化。</span>
+          </p>
+          <div class="hero-badges">
+            <span>HTTP / WebSocket</span>
+            <span>Markdown memory / Markdown 记忆</span>
+            <span>Skill drafts / 技能草稿</span>
+          </div>
+        </div>
+        <aside class="hero-panel reveal stagger-1">
+          <h2>Quick Loop / 快速闭环</h2>
+          <ol>
+            <li>Send a message / 发送一条消息</li>
+            <li>See memory proposals / 查看记忆提案</li>
+            <li>Watch skill drafts appear / 观察技能草稿生成</li>
+            <li>Run daily review / 运行每日复盘</li>
+          </ol>
+          <div class="hero-links">
+            <a href="/docs" target="_blank" rel="noreferrer">Open API Docs</a>
+            <a href="/showcase/evolution" target="_blank" rel="noreferrer">View Evolution JSON</a>
+          </div>
+        </aside>
+      </header>
+
+      <main class="layout">
+        <section class="chat-column reveal stagger-2">
+          <div class="panel panel-chat">
+            <div class="panel-head">
+              <div>
+                <h2>Live Chat / 实时对话</h2>
+                <p>Local chat against the current workspace. 当前工作区的本地对话入口。</p>
+              </div>
+              <label class="session-pill">
+                <span>Session / 会话</span>
+                <input id="session-id" type="text" placeholder="auto-generated" />
+              </label>
+            </div>
+
+            <div id="chat-log" class="chat-log" aria-live="polite"></div>
+
+            <form id="chat-form" class="composer">
+              <textarea
+                id="chat-input"
+                rows="4"
+                placeholder="Try: Please read `agent.md`, list the `skills` directory, then turn this workflow into skill: Workspace Orientation"
+              ></textarea>
+              <div class="composer-actions">
+                <button id="send-button" type="submit">Send / 发送</button>
+                <button id="review-button" type="button" class="secondary">Run Daily Review / 执行每日复盘</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel status-strip">
+            <div class="status-card">
+              <span class="status-label">Last Draft / 最新草稿</span>
+              <strong id="last-draft">None yet / 暂无</strong>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Last Review / 最新复盘</span>
+              <strong id="last-review">Not run / 未执行</strong>
+            </div>
+            <div class="status-card">
+              <span class="status-label">Workspace / 工作区</span>
+              <strong id="workspace-state">Live / 实时</strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side-column reveal stagger-3">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Provider / API</h2>
+                <p>Switch the active model backend without editing `.env`.</p>
+              </div>
+              <strong id="provider-active-badge" class="panel-badge">local</strong>
+            </div>
+
+            <form id="provider-form" class="provider-form">
+              <label class="field-stack">
+                <span>Active Provider</span>
+                <select id="provider-select"></select>
+              </label>
+
+              <label class="field-stack" data-provider-field="model">
+                <span>Model</span>
+                <input id="provider-model" type="text" placeholder="gpt-4o-mini" />
+              </label>
+
+              <label class="field-stack" data-provider-field="base_url">
+                <span>Base URL</span>
+                <input id="provider-base-url" type="text" placeholder="https://api.deepseek.com" />
+              </label>
+
+              <label class="field-stack" data-provider-field="reasoning_effort">
+                <span>Reasoning Effort</span>
+                <input id="provider-reasoning-effort" type="text" placeholder="high" />
+              </label>
+
+              <label class="field-stack" data-provider-field="api_key">
+                <span>API Key</span>
+                <input id="provider-api-key" type="password" placeholder="Leave blank to keep current key" />
+              </label>
+
+              <label class="checkbox-row" data-provider-field="thinking_enabled">
+                <input id="provider-thinking-enabled" type="checkbox" />
+                <span>Enable provider-specific thinking mode</span>
+              </label>
+
+              <label class="checkbox-row" id="provider-clear-api-key-row" data-provider-field="clear_api_key">
+                <input id="provider-clear-api-key" type="checkbox" />
+                <span>Clear stored API key for this provider</span>
+              </label>
+
+              <div class="composer-actions">
+                <button id="provider-save-button" type="submit">Save Provider</button>
+                <span id="provider-key-status" class="inline-note">No API key configured.</span>
+              </div>
+
+              <p id="provider-status" class="form-note">
+                Local provider is active.
+              </p>
+            </form>
+          </div>
+
+          <div class="panel">
+            <h2>Live State / 当前状态</h2>
+            <div class="mini-grid">
+              <article>
+                <h3>Agent Memory / Agent 记忆</h3>
+                <pre id="agent-memory" class="code-card"></pre>
+              </article>
+              <article>
+                <h3>User Memory / 用户记忆</h3>
+                <pre id="user-memory" class="code-card"></pre>
+              </article>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Skill Library / 技能库</h2>
+            <div class="mini-grid">
+              <article>
+                <h3>Published / 已发布</h3>
+                <ul id="published-skills" class="list-card"></ul>
+              </article>
+              <article>
+                <h3>Draft Queue / 草稿队列</h3>
+                <ul id="draft-skills" class="list-card"></ul>
+              </article>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>Turn Signals / 本轮信号</h2>
+            <div class="mini-grid">
+              <article>
+                <h3>Memory Proposals / 记忆提案</h3>
+                <ul id="memory-proposals" class="list-card"></ul>
+              </article>
+              <article>
+                <h3>Review Output / 复盘结果</h3>
+                <ul id="review-output" class="list-card"></ul>
+              </article>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <section class="panel showcase reveal stagger-4">
+        <div class="panel-head">
+          <div>
+            <h2>Evolution Showcase / 演化展示</h2>
+            <p>
+              Before and after snapshots for `agent.md`, `user.md`, and the skill library.
+              `agent.md`、`user.md` 和技能库的演化前后对比。
+            </p>
+          </div>
+          <div id="showcase-tabs" class="tab-row"></div>
+        </div>
+        <div id="showcase-body" class="showcase-body"></div>
+      </section>
+    </div>
+
+    <template id="message-template">
+      <article class="message">
+        <div class="message-meta"></div>
+        <div class="message-content"></div>
+      </article>
+    </template>
+
+    <script src="/ui/static/app.js" defer></script>
+  </body>
+</html>

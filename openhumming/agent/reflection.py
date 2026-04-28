@@ -1,17 +1,11 @@
 from openhumming.agent.state import ReflectionOutcome, TurnObservation, TurnPlan
+from openhumming.memory.reflection import MemoryReflectionEngine
 
-USER_MEMORY_HINTS = (
-    "remember",
-    "i prefer",
-    "my preference",
-    "\u8bb0\u4f4f",
-    "\u504f\u597d",
-    "\u6211\u559c\u6b22",
-    "\u6211\u66f4\u559c\u6b22",
-)
 SKILL_CREATION_HINTS = (
     "create skill",
     "turn this into a skill",
+    "turn this workflow into skill",
+    "turn this workflow into a skill",
     "summarize as a skill",
     "next time",
     "\u6c89\u6dc0\u6210",
@@ -21,6 +15,9 @@ SKILL_CREATION_HINTS = (
 
 
 class Reflection:
+    def __init__(self) -> None:
+        self.memory_reflection = MemoryReflectionEngine()
+
     def reflect(
         self,
         message: str,
@@ -29,9 +26,10 @@ class Reflection:
     ) -> ReflectionOutcome:
         lowered = message.lower()
         return ReflectionOutcome(
-            should_update_agent_memory=False,
-            should_update_user_memory=any(
-                hint in lowered for hint in USER_MEMORY_HINTS
+            memory_proposals=self.memory_reflection.propose(
+                message=message,
+                plan=plan,
+                observation=observation,
             ),
             should_consider_skill_creation=any(
                 hint in lowered for hint in SKILL_CREATION_HINTS

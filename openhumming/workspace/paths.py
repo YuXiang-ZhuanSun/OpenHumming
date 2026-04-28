@@ -32,6 +32,10 @@ class WorkspacePaths:
         return self.root / "skills"
 
     @property
+    def skill_drafts_dir(self) -> Path:
+        return self.skills_dir / "drafts"
+
+    @property
     def tasks_dir(self) -> Path:
         return self.root / "tasks"
 
@@ -52,16 +56,26 @@ class WorkspacePaths:
         return self.root / "traces"
 
     @property
+    def config_dir(self) -> Path:
+        return self.root / "config"
+
+    @property
+    def provider_settings_file(self) -> Path:
+        return self.config_dir / "provider_settings.json"
+
+    @property
     def directories(self) -> tuple[Path, ...]:
         return (
             self.root,
             self.conversations_dir,
             self.summaries_dir,
             self.skills_dir,
+            self.skill_drafts_dir,
             self.tasks_dir,
             self.task_runs_dir,
             self.files_dir,
             self.traces_dir,
+            self.config_dir,
         )
 
     def conversation_file(self, target_date: date | None = None) -> Path:

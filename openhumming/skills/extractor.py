@@ -1,18 +1,11 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
-from openhumming.agent.state import TurnObservation, TurnPlan
+from openhumming.skills.workflow_capture import WorkflowCapture
 
-SKILL_CREATION_HINTS = (
-    "create skill",
-    "turn this into a skill",
-    "summarize as a skill",
-    "\u6c89\u6dc0\u6210",
-    "\u56fa\u5316",
-    "\u603b\u7ed3\u6210 skill",
-)
 SKILL_NAME_PATTERN = re.compile(
-    r"(?:skill|技能)\s*[:：]\s*`?([A-Za-z0-9_\-\u4e00-\u9fff ]+)`?",
+    r"(?:\bskill\b|\u6280\u80fd)\s*[:\uff1a]\s*`?([A-Za-z0-9_\-\u4e00-\u9fff ]+)`?",
     re.IGNORECASE,
 )
 
@@ -25,40 +18,31 @@ class SkillDraft:
     inputs: list[str]
     procedure: list[str]
     output: str
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class SkillExtractor:
-    def should_create_skill(
-        self,
-        message: str,
-        observation: TurnObservation,
-    ) -> bool:
-        lowered = message.lower()
-        explicit_hint = any(hint in lowered for hint in SKILL_CREATION_HINTS)
-        reuse_hint = any(
-            hint in lowered
-            for hint in ("next time", "\u4e0b\u6b21\u4e5f\u8fd9\u4e48\u505a")
-        )
-        return explicit_hint or (reuse_hint and bool(observation.tool_results))
-
-    def draft_from_turn(
+    def draft_from_capture(
         self,
         *,
-        message: str,
-        response: str,
-        plan: TurnPlan,
-        observation: TurnObservation,
-    ) -> SkillDraft | None:
-        if not self.should_create_skill(message, observation):
-            return None
-
-        name = self._extract_name(message, plan, observation)
-        description = self._build_description(plan, observation)
-        when_to_use = self._build_when_to_use(plan)
-        inputs = self._build_inputs(observation)
-        procedure = self._build_procedure(plan, observation, response)
-        output = self._build_output(plan)
-
+        capture: WorkflowCapture,
+        confidence: float,
+        reason: str,
+    ) -> SkillDraft:
+        name = self._extract_name(capture)
+        description = self._build_description(capture)
+        when_to_use = self._build_when_to_use(capture)
+        inputs = self._build_inputs(capture)
+        procedure = self._build_procedure(capture)
+        output = self._build_output(capture)
+        metadata = {
+            "status": "draft",
+            "source": "workflow_capture",
+            "created_from_sessions": [capture.session_id],
+            "confidence": round(confidence, 2),
+            "times_reused": 0,
+            "capture_reason": reason,
+        }
         return SkillDraft(
             name=name,
             description=description,
@@ -66,76 +50,66 @@ class SkillExtractor:
             inputs=inputs,
             procedure=procedure,
             output=output,
+            metadata=metadata,
         )
 
-    def _extract_name(
-        self,
-        message: str,
-        plan: TurnPlan,
-        observation: TurnObservation,
-    ) -> str:
-        match = SKILL_NAME_PATTERN.search(message)
+    def _extract_name(self, capture: WorkflowCapture) -> str:
+        match = SKILL_NAME_PATTERN.search(capture.user_goal)
         if match:
             return match.group(1).strip()
-
-        if observation.tool_results:
-            tool_names = "_".join(result.tool_name for result in observation.tool_results[:2])
+        if capture.successful_steps:
+            tool_names = "_".join(step.tool_name for step in capture.successful_steps[:2])
             return f"{tool_names}_workflow"
-        return f"{plan.intent}_workflow"
+        return f"{capture.intent}_workflow"
 
-    def _build_description(
-        self,
-        plan: TurnPlan,
-        observation: TurnObservation,
-    ) -> str:
-        if observation.tool_results:
-            tools = ", ".join(result.tool_name for result in observation.tool_results)
-            return f"Reusable {plan.intent} workflow using {tools}."
-        return f"Reusable workflow for the {plan.intent} intent."
+    def _build_description(self, capture: WorkflowCapture) -> str:
+        if capture.successful_steps:
+            tools = ", ".join(step.tool_name for step in capture.successful_steps)
+            return f"Reusable {capture.intent} workflow using {tools}."
+        return f"Reusable workflow for the {capture.intent} intent."
 
-    def _build_when_to_use(self, plan: TurnPlan) -> str:
-        if plan.intent == "schedule_task":
+    def _build_when_to_use(self, capture: WorkflowCapture) -> str:
+        if capture.intent == "schedule_task":
             return "Use this when the user wants to create or manage a recurring task."
-        if plan.intent == "tool_use":
-            return "Use this when the user asks for a workspace operation that should be repeatable."
+        if capture.intent == "tool_use":
+            return "Use this when the user asks for a repeatable workspace operation."
         return "Use this when a completed workflow should be reused later."
 
-    def _build_inputs(self, observation: TurnObservation) -> list[str]:
+    def _build_inputs(self, capture: WorkflowCapture) -> list[str]:
         inputs = ["user goal", "workspace context"]
-        for result in observation.tool_results:
-            path = result.input_data.get("path")
-            if path and "target path" not in inputs:
-                inputs.append("target path")
-            natural_language = result.input_data.get("natural_language")
-            if natural_language and "schedule request" not in inputs:
-                inputs.append("schedule request")
+        normalized_keys = {
+            "path": "target path",
+            "name": "skill name",
+            "slug": "skill slug",
+            "natural_language": "schedule request",
+            "title": "task title",
+            "prompt": "task prompt",
+        }
+        for step in capture.successful_steps:
+            for key in step.input_data:
+                label = normalized_keys.get(key)
+                if label and label not in inputs:
+                    inputs.append(label)
         return inputs
 
-    def _build_procedure(
-        self,
-        plan: TurnPlan,
-        observation: TurnObservation,
-        response: str,
-    ) -> list[str]:
+    def _build_procedure(self, capture: WorkflowCapture) -> list[str]:
         procedure: list[str] = ["Understand the user's intended outcome."]
-        procedure.extend(plan.notes[:2])
-
-        for result in observation.tool_results:
-            if result.success:
+        procedure.extend(capture.plan_notes[:2])
+        for step in capture.steps:
+            if step.success:
                 procedure.append(
-                    f"Run `{result.tool_name}` with the required inputs and verify the result."
+                    f"Run `{step.tool_name}` and verify the outcome: {step.outcome_preview or 'success'}."
                 )
             else:
                 procedure.append(
-                    f"Attempt `{result.tool_name}` and surface the failure clearly if it does not succeed."
+                    f"Attempt `{step.tool_name}` and surface the failure clearly if it does not succeed."
                 )
-
-        if response.strip():
+        if capture.response_summary:
             procedure.append("Summarize the outcome and explain the next useful step.")
         return self._deduplicate(procedure)
 
-    def _build_output(self, plan: TurnPlan) -> str:
-        if plan.intent == "schedule_task":
+    def _build_output(self, capture: WorkflowCapture) -> str:
+        if capture.intent == "schedule_task":
             return "A created task definition and a concise explanation of the schedule."
         return "A completed workflow result plus a concise explanation of what was done."
 

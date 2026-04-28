@@ -12,3 +12,4 @@ workspace/summaries/*.md
 workspace/tasks/runs/*
 workspace/files/*
 workspace/traces/*.jsonl
+examples/real_demos/last_server.log

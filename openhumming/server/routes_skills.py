@@ -20,6 +20,8 @@ class SkillResponse(BaseModel):
     description: str
     content: str
     path: str
+    status: str
+    metadata: dict[str, object]
 
 
 @router.get("/skills", response_model=list[SkillResponse])
@@ -32,6 +34,25 @@ def list_skills(request: Request) -> list[SkillResponse]:
             description=skill.description,
             content=skill.content,
             path=str(skill.path),
+            status=skill.status,
+            metadata=skill.metadata,
+        )
+        for skill in skills
+    ]
+
+
+@router.get("/skills/drafts", response_model=list[SkillResponse])
+def list_skill_drafts(request: Request) -> list[SkillResponse]:
+    skills = request.app.state.skill_manager.list_skill_drafts()
+    return [
+        SkillResponse(
+            name=skill.name,
+            slug=skill.slug,
+            description=skill.description,
+            content=skill.content,
+            path=str(skill.path),
+            status=skill.status,
+            metadata=skill.metadata,
         )
         for skill in skills
     ]
@@ -53,4 +74,6 @@ def create_skill(payload: SkillCreateRequest, request: Request) -> SkillResponse
         description=skill.description,
         content=skill.content,
         path=str(skill.path),
+        status=skill.status,
+        metadata=skill.metadata,
     )

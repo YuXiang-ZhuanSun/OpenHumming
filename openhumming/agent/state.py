@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from openhumming.memory.models import AppliedMemoryUpdate, MemoryUpdateProposal
+
 
 @dataclass(slots=True)
 class ToolCallPlan:
@@ -45,9 +47,16 @@ class TurnObservation:
 
 @dataclass(slots=True)
 class ReflectionOutcome:
-    should_update_agent_memory: bool = False
-    should_update_user_memory: bool = False
+    memory_proposals: list[MemoryUpdateProposal] = field(default_factory=list)
     should_consider_skill_creation: bool = False
+
+    @property
+    def should_update_agent_memory(self) -> bool:
+        return any(proposal.target == "agent" for proposal in self.memory_proposals)
+
+    @property
+    def should_update_user_memory(self) -> bool:
+        return any(proposal.target == "user" for proposal in self.memory_proposals)
 
 
 @dataclass(slots=True)
@@ -56,3 +65,6 @@ class AgentTurnResult:
     response: str
     actions: list[str]
     memory_updates: dict[str, bool]
+    memory_proposals: list[MemoryUpdateProposal] = field(default_factory=list)
+    applied_memory_updates: list[AppliedMemoryUpdate] = field(default_factory=list)
+    created_skill_draft: dict[str, Any] | None = None

@@ -6,7 +6,8 @@ import uvicorn
 
 from openhumming.agent.runtime import AgentRuntime
 from openhumming.config import Settings, get_settings
-from openhumming.llm import build_provider
+from openhumming.llm import build_provider, build_provider_from_profile
+from openhumming.llm.provider_settings import ProviderSettingsStore
 from openhumming.memory.reviewer import DailyReviewService
 from openhumming.memory.store import MemoryStore
 from openhumming.scheduler.manager import TaskManager
@@ -40,17 +41,28 @@ def _resolve_settings(
     return settings.model_copy(update=updates)
 
 
-def _build_runtime(settings: Settings) -> AgentRuntime:
+def _build_runtime(
+    settings: Settings,
+    *,
+    prefer_workspace_provider: bool = True,
+) -> AgentRuntime:
     paths = WorkspacePaths.from_root(settings.workspace_root)
     initialize_workspace(paths)
     memory_store = MemoryStore(paths)
     skill_manager = SkillManager(paths.skills_dir)
     task_manager = TaskManager(paths.tasks_file)
     tool_registry = build_default_registry(paths, skill_manager, task_manager)
+    provider = build_provider(settings)
+    if prefer_workspace_provider:
+        document = ProviderSettingsStore(paths.provider_settings_file, settings).load()
+        try:
+            provider = build_provider_from_profile(document.active_profile)
+        except ValueError:
+            provider = build_provider(settings)
     return AgentRuntime(
         settings=settings,
         memory_store=memory_store,
-        provider=build_provider(settings),
+        provider=provider,
         trace_recorder=TraceRecorder(paths),
         skill_manager=skill_manager,
         tool_registry=tool_registry,
@@ -99,7 +111,10 @@ def serve_command(
         host=host,
         port=port,
     )
-    app_instance = create_app(settings)
+    app_instance = create_app(
+        settings,
+        prefer_workspace_provider=provider is None,
+    )
     uvicorn.run(app_instance, host=settings.host, port=settings.port)
 
 
@@ -111,7 +126,10 @@ def chat_command(
     provider: str | None = typer.Option(None, help="Provider name."),
 ) -> None:
     settings = _resolve_settings(workspace=workspace, provider=provider)
-    runtime = _build_runtime(settings)
+    runtime = _build_runtime(
+        settings,
+        prefer_workspace_provider=provider is None,
+    )
 
     if message is not None:
         result = runtime.respond(session_id, message)
